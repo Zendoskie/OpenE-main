@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BiArrowBack, BiSend, BiMicrophone, BiVolumeFull } from "react-icons/bi";
+import { BiArrowBack, BiSend, BiMicrophone, BiVolumeFull, BiBot, BiUser, BiErrorCircle } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "../Contexts/SettingsContext"; // Import the settings context
 
 // TypeScript: Add SpeechRecognition types if missing
@@ -78,9 +78,26 @@ type Message = {
   text: string;
 };
 
+const ErrorBanner = ({ message, onClose }: { message: string; onClose: () => void }) => (
+  <motion.div
+    className="fixed top-5 right-5 z-50 bg-red-800/90 border border-red-400 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg backdrop-blur-md"
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+  >
+    <BiErrorCircle className="text-xl" />
+    <span>{message}</span>
+    <button className="ml-2 text-white hover:text-red-200" onClick={onClose}>
+      <BiArrowBack />
+    </button>
+  </motion.div>
+);
+
 export function AIChat() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [error, setError] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const { allowAiVoiceOver } = useSettings(); // Get the AI voice over setting
@@ -111,11 +128,20 @@ export function AIChat() {
     }
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim()) {
+      setError("Please type a message to send.");
+      return;
+    }
+    setIsSending(true);
     setMessages((msgs) => [
       ...msgs,
       { from: "user", text: input },
+    ]);
+    // Simulate AI response delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setMessages((msgs) => [
+      ...msgs,
       {
         from: "system",
         text:
@@ -124,10 +150,30 @@ export function AIChat() {
       },
     ]);
     setInput("");
+    setIsSending(false);
   };
 
+  // Responsive bubble
+  const bubbleBase =
+    "max-w-[70%] rounded-xl px-4 py-2 flex items-center gap-2 relative transition-all duration-200";
+  const userBubble =
+    "bg-primary text-black self-end shadow-lg shadow-primary/10";
+  const systemBubble =
+    "bg-surface text-white self-start shadow-lg shadow-primary/10";
+
   return (
-    <div className="flex flex-col h-full bg-surface rounded-2xl shadow-lg p-4 max-w-3xl mx-auto">
+    <motion.div
+      className="flex flex-col h-full bg-surface rounded-2xl shadow-lg p-4 max-w-3xl mx-auto min-h-[70vh]"
+      animate={{ backgroundColor: "#171f2c" }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Error Banner */}
+      <AnimatePresence>
+        {error && (
+          <ErrorBanner message={error} onClose={() => setError("")} />
+        )}
+      </AnimatePresence>
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
@@ -139,16 +185,19 @@ export function AIChat() {
         </button>
         <span className="font-bold text-xl">OpenE Chat</span>
       </div>
+      {/* Chat bubbles */}
       <div className="flex-1 overflow-y-auto p-4 bg-card rounded-xl mb-2 flex flex-col gap-2">
         {messages.map((msg, idx) => (
-          <div
+          <motion.div
             key={idx}
-            className={`max-w-[70%] rounded-xl px-4 py-2 flex items-center gap-2 ${
-              msg.from === "user"
-                ? "bg-primary text-black self-end"
-                : "bg-surface text-white self-start"
-            }`}
+            className={`${bubbleBase} ${msg.from === "user" ? userBubble : systemBubble}`}
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35, type: "spring" }}
           >
+            <span className="text-lg">
+              {msg.from === "user" ? <BiUser /> : <BiBot />}
+            </span>
             <span>{msg.text}</span>
             {msg.from === "system" && allowAiVoiceOver && (
               <button
@@ -161,24 +210,25 @@ export function AIChat() {
                 <BiVolumeFull size={18} />
               </button>
             )}
-          </div>
+          </motion.div>
         ))}
         <div ref={bottomRef} />
       </div>
+      {/* Input area */}
       <form
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          sendMessage();
+          if (!isSending) sendMessage();
         }}
       >
         {allowAiVoiceOver && (
           <button
             type="button"
             onClick={userListening ? stopUserMic : startUserMic}
-            className={`p-3 rounded-xl transition-colors ${
+            className={`p-3 rounded-xl transition-all duration-200 ${
               userListening
-                ? "bg-primary text-black animate-pulse"
+                ? "bg-primary text-black animate-pulse shadow shadow-primary/30"
                 : "text-primary bg-card hover:bg-primary/20"
             }`}
             aria-label={userListening ? "Stop Recording" : "Start Recording"}
@@ -187,20 +237,28 @@ export function AIChat() {
           </button>
         )}
         <input
-          className="flex-1 px-4 py-2 rounded-xl bg-card text-white focus:outline-none"
+          className="flex-1 px-4 py-2 rounded-xl bg-card text-white focus:outline-none focus:ring focus:ring-primary/60"
           placeholder="Type your message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          disabled={isSending}
         />
         <motion.button
           whileHover={{ scale: 1.1 }}
           type="submit"
-          className="bg-primary p-3 rounded-xl text-black font-bold"
+          className={`bg-primary p-3 rounded-xl text-black font-bold flex items-center justify-center transition-all duration-200 ${
+            isSending ? "opacity-70 cursor-not-allowed" : ""
+          }`}
+          disabled={isSending}
         >
-          <BiSend size={22} />
+          {isSending ? (
+            <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5"></span>
+          ) : (
+            <BiSend size={22} />
+          )}
         </motion.button>
       </form>
-    </div>
+    </motion.div>
   );
 }
 

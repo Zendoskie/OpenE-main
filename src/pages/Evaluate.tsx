@@ -1,6 +1,18 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { BiMicrophone, BiVolumeFull, BiCheck, BiX, BiBot, BiBookOpen } from "react-icons/bi";
+import {
+  BiMicrophone,
+  BiVolumeFull,
+  BiCheck,
+  BiX,
+  BiBot,
+  BiBookOpen,
+  BiQuestionMark,
+  BiPen,
+  BiBadgeCheck,
+  BiInfoCircle,
+  BiErrorCircle,
+} from "react-icons/bi";
 import { useLoading } from "../components/LoadingContext";
 import { useSettings } from "../Contexts/SettingsContext";
 
@@ -20,13 +32,12 @@ const levelOptions = [
     label: "Easy",
     icon: <BiBookOpen />,
     desc: "Suitable for beginners",
-    // Subtle color tint for background and border when selected
     style: {
-      bg: "bg-surface/90",
-      border: "border-primary/50",
-      shadow: "shadow-green-700/20",
-      cardGlow: "shadow-green-400/10"
-    }
+      cardGlow: "shadow-green-400/10",
+      ratingBox: "bg-green-700/40",
+      resultBar: "bg-green-500/60",
+    },
+    tooltip: "For simple/basic questions and answers.",
   },
   {
     value: "medium",
@@ -34,11 +45,11 @@ const levelOptions = [
     icon: <BiBookOpen />,
     desc: "Intermediate difficulty",
     style: {
-      bg: "bg-surface/90",
-      border: "border-primary/80",
-      shadow: "shadow-yellow-600/20",
-      cardGlow: "shadow-yellow-400/10"
-    }
+      cardGlow: "shadow-yellow-400/10",
+      ratingBox: "bg-yellow-700/40",
+      resultBar: "bg-yellow-500/60",
+    },
+    tooltip: "For moderately complex questions and answers.",
   },
   {
     value: "hard",
@@ -46,11 +57,11 @@ const levelOptions = [
     icon: <BiBookOpen />,
     desc: "Challenging level",
     style: {
-      bg: "bg-surface/90",
-      border: "border-primary",
-      shadow: "shadow-red-900/20",
-      cardGlow: "shadow-red-500/10"
-    }
+      cardGlow: "shadow-red-500/10",
+      ratingBox: "bg-red-700/40",
+      resultBar: "bg-red-500/60",
+    },
+    tooltip: "For challenging/advanced questions and answers.",
   },
 ];
 
@@ -63,8 +74,12 @@ const Evaluate: React.FC = () => {
   const [error, setError] = useState("");
   const [eduLevel, setEduLevel] = useState<"" | "easy" | "medium" | "hard">("");
   const [animateLevel, setAnimateLevel] = useState<number | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const { setLoading } = useLoading();
   const { allowAiVoiceOver } = useSettings();
+
+  // Responsive stacking on mobile
+  const flexStack = "flex flex-col md:flex-row gap-6 w-full flex-1";
 
   // For subtle global effect
   const getGlow = () => {
@@ -78,6 +93,8 @@ const Evaluate: React.FC = () => {
     if (eduLevel === "hard") return "bg-red-900/10";
     return "";
   };
+
+  const selectedLevel = levelOptions.find(l => l.value === eduLevel);
 
   const handleClear = () => {
     setQuestion("");
@@ -104,6 +121,7 @@ const Evaluate: React.FC = () => {
       setError("Please fill out both the Question and Answer fields before evaluating.");
       return;
     }
+    setIsEvaluating(true);
     setLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setResult({
@@ -115,6 +133,7 @@ const Evaluate: React.FC = () => {
           ? "Good answer, but could use more detail for the medium level."
           : "Decent effort, but needs more depth for the hard level.",
     });
+    setIsEvaluating(false);
     setLoading(false);
   };
 
@@ -122,21 +141,101 @@ const Evaluate: React.FC = () => {
     alert("AI Detector: This answer seems human-written.");
   };
 
+  // Character count helpers
+  const charLimit = 300;
+  const countColor = (val: string) => {
+    if (val.length > charLimit) return "text-red-400";
+    if (val.length > charLimit - 40) return "text-yellow-400";
+    return "text-gray-400";
+  };
+
+  // Divider with icon
+  const SectionDivider = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-primary text-lg">{icon}</span>
+      <span className="text-lg font-semibold">{label}</span>
+      <div className="flex-1 h-[2px] mx-2 bg-gradient-to-r from-primary/70 to-transparent rounded-full"></div>
+    </div>
+  );
+
+  // Tooltip component
+  const Tooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+    <span className="group relative cursor-pointer">
+      {children}
+      <span className="absolute z-20 left-1/2 -translate-x-1/2 mt-2 w-max min-w-[120px] max-w-xs px-2 py-1 rounded bg-surface text-sm text-gray-300 opacity-0 group-hover:opacity-100 pointer-events-none shadow transition-opacity duration-200 border border-primary/40">
+        {text}
+      </span>
+    </span>
+  );
+
+  // Animated error banner
+  const ErrorBanner = ({ message, onClose }: { message: string; onClose: () => void }) => (
+    <motion.div
+      className="fixed top-5 right-5 z-50 bg-red-800/90 border border-red-400 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg backdrop-blur-md"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+    >
+      <BiErrorCircle className="text-xl" />
+      <span>{message}</span>
+      <button className="ml-2 text-white hover:text-red-200" onClick={onClose}>
+        <BiX />
+      </button>
+    </motion.div>
+  );
+
+  // Animated evaluation result
+  const AnimatedResult = ({ result }: { result: EvalResult }) => (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.92, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.45, type: "spring" }}
+      key={result.rating + result.justification}
+    >
+      <div
+        className={`rounded-xl p-3 font-bold mb-2 flex items-center gap-2 ${selectedLevel?.style.ratingBox ?? "bg-surface"}`}
+      >
+        <BiBadgeCheck className="text-xl" />
+        <span className="text-white">{result.rating}</span>
+      </div>
+      <div className="text-gray-400 mb-1 flex items-center gap-2">
+        <BiInfoCircle /> Justification
+      </div>
+      <div className="bg-surface rounded-xl p-3 text-white min-h-[80px]">
+        {result.justification}
+      </div>
+      <motion.div
+        className={`h-1 mt-3 w-full rounded-full ${selectedLevel?.style.resultBar ?? "bg-primary/60"}`}
+        initial={{ width: 0 }}
+        animate={{ width: "100%" }}
+        transition={{ duration: 0.8 }}
+      />
+    </motion.div>
+  );
+
   return (
     <motion.div
       className={`relative flex flex-col w-full h-full transition-all duration-300 ${getBgOverlay()}`}
-      animate={{ backgroundColor: eduLevel === "easy"
-        ? "rgba(16,100,32,0.08)"
-        : eduLevel === "medium"
-        ? "rgba(120,100,16,0.08)"
-        : eduLevel === "hard"
-        ? "rgba(120,16,32,0.08)"
-        : "rgba(0,0,0,0)" }}
+      animate={{
+        backgroundColor:
+          eduLevel === "easy"
+            ? "rgba(16,100,32,0.08)"
+            : eduLevel === "medium"
+            ? "rgba(120,100,16,0.08)"
+            : eduLevel === "hard"
+            ? "rgba(120,16,32,0.08)"
+            : "rgba(0,0,0,0)",
+      }}
       transition={{ duration: 0.4, type: "tween" }}
     >
+      {/* Error Banner */}
+      {error && (
+        <ErrorBanner message={error} onClose={() => setError("")} />
+      )}
+
       {/* Educational Level Selector */}
       <motion.div
-        className="mb-6 flex flex-row items-center gap-6"
+        className="mb-6 flex flex-col gap-2 items-start sm:flex-row sm:items-center sm:gap-6"
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -146,65 +245,77 @@ const Evaluate: React.FC = () => {
         </span>
         <div className="flex gap-3">
           {levelOptions.map((option, idx) => (
-            <motion.button
-              key={option.value}
-              type="button"
-              className={`
-                flex flex-col items-center gap-1 px-4 py-2 rounded-xl 
-                border transition-all duration-200 font-semibold text-sm
-                bg-card/80 
-                ${
-                  eduLevel === option.value
-                    ? `border-primary ring-2 ring-primary/60 shadow-lg ${option.style.shadow}`
-                    : "border-card"
-                }
-                ${animateLevel === idx ? "scale-110 z-10" : ""}
-                hover:bg-surface hover:border-primary/80
-                focus:outline-none
-              `}
-              style={{
-                color: eduLevel === option.value ? "#fff" : "#d1d5db",
-                background: eduLevel === option.value
-                  ? "linear-gradient(90deg, var(--color-primary) 10%, var(--color-card) 90%)"
-                  : undefined,
-                transition: "background 0.3s, color 0.3s, box-shadow 0.3s"
-              }}
-              whileTap={{ scale: 0.96 }}
-              animate={animateLevel === idx ? { scale: 1.15 } : { scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 15 }}
-              onClick={() => handleLevelSelect(option.value as "easy" | "medium" | "hard", idx)}
-            >
-              <span className="text-lg">{option.icon}</span>
-              <span>{option.label}</span>
-              <span className="text-xs text-gray-400">{option.desc}</span>
-            </motion.button>
+            <Tooltip key={option.value} text={option.tooltip}>
+              <motion.button
+                type="button"
+                className={`
+                  flex flex-col items-center gap-1 px-4 py-2 rounded-xl 
+                  border transition-all duration-200 font-semibold text-sm
+                  bg-card/80 
+                  ${
+                    eduLevel === option.value
+                      ? `border-primary ring-2 ring-primary/60 shadow-lg ${option.style.cardGlow}`
+                      : "border-card"
+                  }
+                  ${animateLevel === idx ? "scale-110 z-10" : ""}
+                  hover:bg-surface hover:border-primary/80
+                  focus:outline-none
+                `}
+                style={{
+                  color: eduLevel === option.value ? "#fff" : "#d1d5db",
+                  background: eduLevel === option.value
+                    ? "linear-gradient(90deg, var(--color-primary) 10%, var(--color-card) 90%)"
+                    : undefined,
+                  transition: "background 0.3s, color 0.3s, box-shadow 0.3s"
+                }}
+                whileTap={{ scale: 0.96 }}
+                animate={animateLevel === idx ? { scale: 1.15 } : { scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                onClick={() => handleLevelSelect(option.value as "easy" | "medium" | "hard", idx)}
+              >
+                <span className="text-lg">{option.icon}</span>
+                <span>{option.label}</span>
+                <span className="text-xs text-gray-400">{option.desc}</span>
+              </motion.button>
+            </Tooltip>
           ))}
         </div>
+        <div className="text-xs text-gray-400 mt-2 sm:mt-0 sm:ml-4">
+          Select the level to adjust evaluation scale.
+        </div>
       </motion.div>
-      <div className="flex flex-row gap-6 w-full flex-1">
+
+      {/* Main Content: Responsive stacking */}
+      <div className={flexStack}>
         {/* Question Card */}
         <motion.div
           className={`bg-card rounded-2xl p-4 shadow-lg flex-1 flex flex-col gap-4 transition-all duration-300 ${getGlow()}`}
           animate={eduLevel ? { boxShadow: "0 4px 24px 0 rgba(0,0,0,0.18)" } : {}}
         >
-          <h3 className="text-lg font-semibold mb-2">Question</h3>
+          <SectionDivider icon={<BiQuestionMark />} label="Question" />
           <div className="flex flex-col gap-2 flex-1">
             <textarea
               value={question}
               onChange={e => setQuestion(e.target.value)}
               className="w-full h-32 rounded-xl bg-surface text-white p-3 focus:outline-none resize-none"
-              placeholder="Enter your question..."
+              placeholder="e.g., What is a Computer?"
+              maxLength={charLimit + 20}
             />
-            {allowAiVoiceOver && (
-              <div className="flex gap-2">
-                <button className="text-gray-400 hover:text-primary" aria-label="Mic">
-                  <BiMicrophone />
-                </button>
-                <button className="text-gray-400 hover:text-primary" aria-label="TTS">
-                  <BiVolumeFull />
-                </button>
-              </div>
-            )}
+            <div className="flex justify-between items-center">
+              <span className={`text-xs ${countColor(question)}`}>
+                {question.length}/{charLimit}
+              </span>
+              {allowAiVoiceOver && (
+                <div className="flex gap-2">
+                  <button className="text-gray-400 hover:text-primary" aria-label="Mic">
+                    <BiMicrophone />
+                  </button>
+                  <button className="text-gray-400 hover:text-primary" aria-label="TTS">
+                    <BiVolumeFull />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
         {/* Answer Card */}
@@ -212,24 +323,30 @@ const Evaluate: React.FC = () => {
           className={`bg-card rounded-2xl p-4 shadow-lg flex-1 flex flex-col gap-4 transition-all duration-300 ${getGlow()}`}
           animate={eduLevel ? { boxShadow: "0 4px 24px 0 rgba(0,0,0,0.18)" } : {}}
         >
-          <h3 className="text-lg font-semibold mb-2">Answer</h3>
+          <SectionDivider icon={<BiPen />} label="Answer" />
           <div className="flex flex-col gap-2 flex-1">
             <textarea
               value={answer}
               onChange={e => setAnswer(e.target.value)}
               className="w-full h-32 rounded-xl bg-surface text-white p-3 focus:outline-none resize-none"
-              placeholder="Enter your answer..."
+              placeholder="e.g., computer is an electronic device that manipulates information, or data, according to a set of instructions."
+              maxLength={charLimit + 20}
             />
-            {allowAiVoiceOver && (
-              <div className="flex gap-2">
-                <button className="text-gray-400 hover:text-primary" aria-label="Mic">
-                  <BiMicrophone />
-                </button>
-                <button className="text-gray-400 hover:text-primary" aria-label="TTS">
-                  <BiVolumeFull />
-                </button>
-              </div>
-            )}
+            <div className="flex justify-between items-center">
+              <span className={`text-xs ${countColor(answer)}`}>
+                {answer.length}/{charLimit}
+              </span>
+              {allowAiVoiceOver && (
+                <div className="flex gap-2">
+                  <button className="text-gray-400 hover:text-primary" aria-label="Mic">
+                    <BiMicrophone />
+                  </button>
+                  <button className="text-gray-400 hover:text-primary" aria-label="TTS">
+                    <BiVolumeFull />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex gap-2 mt-2">
             <button
@@ -249,31 +366,36 @@ const Evaluate: React.FC = () => {
           </div>
           <motion.button
             whileHover={{ scale: 1.02 }}
-            className="w-full mt-2 bg-primary text-black rounded-xl py-3 font-bold shadow-md"
+            disabled={isEvaluating}
+            className={`w-full mt-2 bg-primary text-black rounded-xl py-3 font-bold shadow-md flex items-center justify-center gap-2 transition-all duration-200 ${
+              isEvaluating ? "opacity-70 cursor-not-allowed" : ""
+            }`}
             onClick={handleEvaluate}
             type="button"
           >
-            <BiCheck className="inline-block mr-2" /> Evaluate
+            {isEvaluating ? (
+              <>
+                <span className="animate-spin mr-2 rounded-full border-2 border-white border-t-transparent w-4 h-4 inline-block" />
+                Evaluating...
+              </>
+            ) : (
+              <>
+                <BiCheck className="inline-block mr-2" /> Evaluate
+              </>
+            )}
           </motion.button>
-          {error && (
-            <div className="mt-2 text-red-400 font-medium">{error}</div>
-          )}
         </motion.div>
         {/* Evaluation Result */}
         <motion.div
           className={`bg-card rounded-2xl p-4 shadow-lg flex-[0.8] flex flex-col gap-4 transition-all duration-300 ${getGlow()}`}
           animate={eduLevel ? { boxShadow: "0 4px 24px 0 rgba(0,0,0,0.18)" } : {}}
         >
-          <h3 className="text-lg font-semibold mb-2">Evaluation Results</h3>
+          <SectionDivider icon={<BiBadgeCheck />} label="Evaluation Results" />
           <div>
-            <div className="text-gray-400 mb-1">Rating</div>
-            <div className="bg-surface rounded-xl p-3 text-white font-bold mb-4">
-              {result.rating}
+            <div className="text-gray-400 mb-1 flex items-center gap-2">
+              <BiBadgeCheck /> Rating
             </div>
-            <div className="text-gray-400 mb-1">Justification</div>
-            <div className="bg-surface rounded-xl p-3 text-white min-h-[80px]">
-              {result.justification}
-            </div>
+            <AnimatedResult result={result} />
           </div>
         </motion.div>
       </div>
