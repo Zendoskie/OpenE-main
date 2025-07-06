@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { BiMicrophone, BiVolumeFull, BiCheck, BiX, BiBot, BiBookOpen } from "react-icons/bi";
 import { useLoading } from "../components/LoadingContext";
-import { useSettings } from "../Contexts/SettingsContext"; // Import settings context
+import { useSettings } from "../Contexts/SettingsContext";
 
 interface EvalResult {
   rating: string;
@@ -20,49 +20,82 @@ const levelOptions = [
     label: "Easy",
     icon: <BiBookOpen />,
     desc: "Suitable for beginners",
+    // Subtle color tint for background and border when selected
+    style: {
+      bg: "bg-surface/90",
+      border: "border-primary/50",
+      shadow: "shadow-green-700/20",
+      cardGlow: "shadow-green-400/10"
+    }
   },
   {
     value: "medium",
     label: "Medium",
     icon: <BiBookOpen />,
     desc: "Intermediate difficulty",
+    style: {
+      bg: "bg-surface/90",
+      border: "border-primary/80",
+      shadow: "shadow-yellow-600/20",
+      cardGlow: "shadow-yellow-400/10"
+    }
   },
   {
     value: "hard",
     label: "Hard",
     icon: <BiBookOpen />,
     desc: "Challenging level",
+    style: {
+      bg: "bg-surface/90",
+      border: "border-primary",
+      shadow: "shadow-red-900/20",
+      cardGlow: "shadow-red-500/10"
+    }
   },
 ];
+
+const baseGlow = "shadow-[0_2px_12px_0_rgba(0,0,0,0.16)]";
 
 const Evaluate: React.FC = () => {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [result, setResult] = useState<EvalResult>(defaultEvalResult);
-  const [error, setError] = useState(""); // Error state
-  const [eduLevel, setEduLevel] = useState<"" | "easy" | "medium" | "hard">(""); // Educational level selection state
-  const [animateLevel, setAnimateLevel] = useState<number | null>(null); // For animation when level is selected
+  const [error, setError] = useState("");
+  const [eduLevel, setEduLevel] = useState<"" | "easy" | "medium" | "hard">("");
+  const [animateLevel, setAnimateLevel] = useState<number | null>(null);
   const { setLoading } = useLoading();
-  const { allowAiVoiceOver } = useSettings(); // Use the voice over setting
+  const { allowAiVoiceOver } = useSettings();
+
+  // For subtle global effect
+  const getGlow = () => {
+    if (!eduLevel) return baseGlow;
+    const selected = levelOptions.find(l => l.value === eduLevel);
+    return `${baseGlow} ${selected?.style.cardGlow || ""}`;
+  };
+  const getBgOverlay = () => {
+    if (eduLevel === "easy") return "bg-green-900/10";
+    if (eduLevel === "medium") return "bg-yellow-900/10";
+    if (eduLevel === "hard") return "bg-red-900/10";
+    return "";
+  };
 
   const handleClear = () => {
     setQuestion("");
     setAnswer("");
     setResult(defaultEvalResult);
-    setError(""); // Clear error on reset
-    setEduLevel(""); // Reset educational level
+    setError("");
+    setEduLevel("");
     setAnimateLevel(null);
   };
 
   const handleLevelSelect = (level: "easy" | "medium" | "hard", idx: number) => {
     setEduLevel(level);
     setAnimateLevel(idx);
-    setTimeout(() => setAnimateLevel(null), 600); // Animation duration
+    setTimeout(() => setAnimateLevel(null), 600);
   };
 
   const handleEvaluate = async () => {
-    setError(""); // Clear previous error
-    // Validation: All fields must be filled
+    setError("");
     if (!eduLevel) {
       setError("Please select an educational level before evaluating.");
       return;
@@ -72,9 +105,7 @@ const Evaluate: React.FC = () => {
       return;
     }
     setLoading(true);
-    // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    // Example: you could adjust the evaluation logic based on eduLevel if needed
     setResult({
       rating: eduLevel === "easy" ? "10/10" : eduLevel === "medium" ? "8/10" : "6/10",
       justification:
@@ -92,7 +123,17 @@ const Evaluate: React.FC = () => {
   };
 
   return (
-    <div className="relative flex flex-col w-full h-full">
+    <motion.div
+      className={`relative flex flex-col w-full h-full transition-all duration-300 ${getBgOverlay()}`}
+      animate={{ backgroundColor: eduLevel === "easy"
+        ? "rgba(16,100,32,0.08)"
+        : eduLevel === "medium"
+        ? "rgba(120,100,16,0.08)"
+        : eduLevel === "hard"
+        ? "rgba(120,16,32,0.08)"
+        : "rgba(0,0,0,0)" }}
+      transition={{ duration: 0.4, type: "tween" }}
+    >
       {/* Educational Level Selector */}
       <motion.div
         className="mb-6 flex flex-row items-center gap-6"
@@ -109,21 +150,20 @@ const Evaluate: React.FC = () => {
               key={option.value}
               type="button"
               className={`
-                flex flex-col items-center gap-1 px-4 py-2 rounded-xl shadow 
-                transition-all duration-150 font-semibold text-sm
-                bg-surface bg-opacity-80 border
-                ${eduLevel === option.value
-                  ? "border-primary ring-2 ring-primary"
-                  : "border-card"}
-                ${animateLevel === idx ? "scale-110 shadow-lg z-10" : ""}
-                hover:bg-card hover:bg-opacity-100 hover:border-primary
+                flex flex-col items-center gap-1 px-4 py-2 rounded-xl 
+                border transition-all duration-200 font-semibold text-sm
+                bg-card/80 
+                ${
+                  eduLevel === option.value
+                    ? `border-primary ring-2 ring-primary/60 shadow-lg ${option.style.shadow}`
+                    : "border-card"
+                }
+                ${animateLevel === idx ? "scale-110 z-10" : ""}
+                hover:bg-surface hover:border-primary/80
                 focus:outline-none
               `}
               style={{
-                color: eduLevel === option.value ? "#fff" : "#d1d5db", // text-white or text-gray-300
-                boxShadow: eduLevel === option.value
-                  ? "0 0 0 2px var(--color-primary), 0 2px 8px 0 rgba(0,0,0,0.2)"
-                  : undefined,
+                color: eduLevel === option.value ? "#fff" : "#d1d5db",
                 background: eduLevel === option.value
                   ? "linear-gradient(90deg, var(--color-primary) 10%, var(--color-card) 90%)"
                   : undefined,
@@ -141,10 +181,12 @@ const Evaluate: React.FC = () => {
           ))}
         </div>
       </motion.div>
-      {/* No Topbar or HelpPanel here! Only the form/cards */}
       <div className="flex flex-row gap-6 w-full flex-1">
         {/* Question Card */}
-        <motion.div className="bg-card rounded-2xl p-4 shadow-lg flex-1 flex flex-col gap-4">
+        <motion.div
+          className={`bg-card rounded-2xl p-4 shadow-lg flex-1 flex flex-col gap-4 transition-all duration-300 ${getGlow()}`}
+          animate={eduLevel ? { boxShadow: "0 4px 24px 0 rgba(0,0,0,0.18)" } : {}}
+        >
           <h3 className="text-lg font-semibold mb-2">Question</h3>
           <div className="flex flex-col gap-2 flex-1">
             <textarea
@@ -166,7 +208,10 @@ const Evaluate: React.FC = () => {
           </div>
         </motion.div>
         {/* Answer Card */}
-        <motion.div className="bg-card rounded-2xl p-4 shadow-lg flex-1 flex flex-col gap-4">
+        <motion.div
+          className={`bg-card rounded-2xl p-4 shadow-lg flex-1 flex flex-col gap-4 transition-all duration-300 ${getGlow()}`}
+          animate={eduLevel ? { boxShadow: "0 4px 24px 0 rgba(0,0,0,0.18)" } : {}}
+        >
           <h3 className="text-lg font-semibold mb-2">Answer</h3>
           <div className="flex flex-col gap-2 flex-1">
             <textarea
@@ -215,7 +260,10 @@ const Evaluate: React.FC = () => {
           )}
         </motion.div>
         {/* Evaluation Result */}
-        <motion.div className="bg-card rounded-2xl p-4 shadow-lg flex-[0.8] flex flex-col gap-4">
+        <motion.div
+          className={`bg-card rounded-2xl p-4 shadow-lg flex-[0.8] flex flex-col gap-4 transition-all duration-300 ${getGlow()}`}
+          animate={eduLevel ? { boxShadow: "0 4px 24px 0 rgba(0,0,0,0.18)" } : {}}
+        >
           <h3 className="text-lg font-semibold mb-2">Evaluation Results</h3>
           <div>
             <div className="text-gray-400 mb-1">Rating</div>
@@ -229,7 +277,7 @@ const Evaluate: React.FC = () => {
           </div>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
