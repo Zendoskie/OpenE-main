@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #e6a91d;
+    --background: #fafcfd;
+    --secondary: #00abbf28;
+    --panel: #f1f1f1;
+    --uBlack: #2c2413;
+    --uGray: #434343;
+    --uGrayLight: #666666;
+    --uGrayLightLight: #999999;
+    --uRed: #dc2626;
+    --uGreen: #22c55e;
+    --uBlue: #2563eb;
+    /* Scores */
+    --score-1: #ff4d4d;
+    --score-2: #ff6b4d;
+    --score-3: #ff884d;
+    --score-4: #ffaa4d;
+    --score-5: #ffca4d;
+    --score-6: #e6d44d;
+    --score-7: #c7e64d;
+    --score-8: #a3e64d;
+    --score-9: #6ce64d;
+    --score-10: #34d159;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #ffc131;
+      --background: #202020;
+      --secondary: #00abbf28;
+      --panel: #393939;
+      --uBlack: #0A0F18;
+      --uGray: #e7e7e7;
+      --uGrayLight: #bebebe;
+      --uGrayLightLight: #434343;
+      --uRed: #ef4444;
+      --uGreen: #7bf1a8;
+      --uBlue: #60a5fa;
+      /* Scores */
+      --score-1: #ff5c5c;
+      --score-2: #ff765c;
+      --score-3: #ff956c;
+      --score-4: #ffb66c;
+      --score-5: #ffd26c;
+      --score-6: #e6dd6c;
+      --score-7: #c1e66c;
+      --score-8: #9ee66c;
+      --score-9: #6be66c;
+      --score-10: #34d17c;
+    }
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--uBlack);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
