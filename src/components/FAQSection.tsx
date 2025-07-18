@@ -1,18 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 
 const FAQSection = () => {
-  const [openItems, setOpenItems] = useState<number[]>([]);
-
-  const toggleItem = (index: number) => {
-    setOpenItems(prev =>
-      prev.includes(index)
-        ? prev.filter(item => item !== index)
-        : [...prev, index]
-    );
-  };
-
   const faqData = [
     {
       question: "How accurate is the AI evaluation compared to human graders?",
@@ -24,7 +14,7 @@ const FAQSection = () => {
     },
     {
       question: "Is student data secure and private?",
-      answer: "Yes, we take data security very seriously. All student responses are encrypted during transmission and storage. We comply with educational privacy regulations including FERPA and GDPR. Data is processed locally on your institution's systems, and we never store or share personal student information."
+      answer: "Yes, we take data security very seriously. All student responses are encrypted during transmission and storage. We comply with educational privacy regulations including FERPA and GDPR. Data is processed locally on your institution&apos;s systems, and we never store or share personal student information."
     },
     {
       question: "How long does it take to get results?",
@@ -36,7 +26,7 @@ const FAQSection = () => {
     },
     {
       question: "What platforms does OpenE support?",
-      answer: "OpenE is available as a desktop application for both Windows and Linux operating systems. We're also working on integration capabilities with popular Learning Management Systems (LMS) like Canvas, Blackboard, and Moodle to streamline the assessment workflow."
+      answer: "OpenE is available as a desktop application for both Windows and Linux operating systems. We&apos;re also working on integration capabilities with popular Learning Management Systems (LMS) like Canvas, Blackboard, and Moodle to streamline the assessment workflow."
     },
     {
       question: "Do I need technical expertise to use the system?",
@@ -48,11 +38,11 @@ const FAQSection = () => {
     },
     {
       question: "How does the system handle different languages?",
-      answer: "Currently, OpenE is optimized for English language assessments. However, we're actively developing multilingual capabilities and plan to support Spanish, French, and other major languages in future updates based on user demand and research priorities."
+      answer: "Currently, OpenE is optimized for English language assessments. However, we&apos;re actively developing multilingual capabilities and plan to support Spanish, French, and other major languages in future updates based on user demand and research priorities."
     },
     {
       question: "Is there a limit to how many responses I can evaluate?",
-      answer: "The desktop application doesn't impose artificial limits on the number of responses you can evaluate. Performance depends on your system specifications, but the software is optimized to handle large batches efficiently, making it suitable for everything from small quizzes to institution-wide assessments."
+      answer: "The desktop application doesn&apos;t impose artificial limits on the number of responses you can evaluate. Performance depends on your system specifications, but the software is optimized to handle large batches efficiently, making it suitable for everything from small quizzes to institution-wide assessments."
     }
   ];
 
@@ -60,7 +50,6 @@ const FAQSection = () => {
     <section id="faq" className="py-20 bg-panel">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto space-y-12">
-          {/* Section Header */}
           <div className="text-center space-y-4">
             <h2 className="text-4xl lg:text-5xl font-bold text-uBlack">
               Frequently Asked <span className="text-primary">Questions</span>
@@ -70,45 +59,26 @@ const FAQSection = () => {
             </p>
           </div>
 
-          {/* FAQ Items */}
           <div className="space-y-4">
             {faqData.map((item, index) => (
               <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <button
-                  onClick={() => toggleItem(index)}
-                  className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                  <h3 className="text-lg font-semibold text-uBlack pr-8">
+                <div className="px-8 py-6">
+                  <h3 className="text-lg font-semibold text-uBlack mb-4">
                     {item.question}
                   </h3>
-                  <div className={`transform transition-transform duration-200 ${
-                    openItems.includes(index) ? 'rotate-180' : ''
-                  }`}>
-                    <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-                
-                {openItems.includes(index) && (
-                  <div className="px-8 pb-6 border-t border-panel">
-                    <div className="pt-4">
-                      <p className="text-uGray leading-relaxed">
-                        {item.answer}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  <p className="text-uGray leading-relaxed">
+                    {item.answer}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Contact CTA */}
           <div className="bg-gradient-to-r from-primary/10 to-uBlue/10 rounded-2xl p-8 text-center">
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-uBlack">Still have questions?</h3>
               <p className="text-uGray max-w-2xl mx-auto">
-                Can't find the answer you're looking for? Our research team is here to help. 
+                Can&apos;t find the answer you&apos;re looking for? Our research team is here to help. 
                 Contact us for more detailed information about our evaluation system.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
